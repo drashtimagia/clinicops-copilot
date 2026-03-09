@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusText = document.getElementById('recordingStatus');
     const transcriptOut = document.getElementById('transcriptOutput');
     const decisionOut = document.getElementById('decisionOutput');
+    const opStatusOut = document.getElementById('opStatusOutput');
+    const staffImpactOut = document.getElementById('staffImpactOutput');
     const player = document.getElementById('syntheticAudioPlayer');
     
     let mediaRecorder = null;
@@ -119,9 +121,67 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        decisionOut.innerHTML = decisionHtml;
+        decisionOut.innerHTML = decisionHtml || "<span class='placeholder-text'>No actions required.</span>";
         
-        // 3. Play Base64 Audio natively
+        // 3. Operational Status
+        let opHtml = "";
+        const downtime = payload.downtime_bucket || "unknown";
+        
+        let badgeClass = "badge-available";
+        if (downtime.includes("temporarily")) badgeClass = "badge-warning";
+        else if (downtime.includes("unavailable")) badgeClass = "badge-danger";
+        
+        const friendlyDowntime = downtime.replace(/_/g, " ");
+        
+        opHtml += `
+            <div class="op-row">
+                <span class="op-label">Downtime:</span>
+                <span class="op-badge ${badgeClass}">${friendlyDowntime}</span>
+            </div>
+            <div class="op-row">
+                <span class="op-label">Reroute:</span> ${payload.reroute_recommendation || "N/A"}
+            </div>
+            <div class="op-row" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                <div class="op-label" style="display: block; margin-bottom: 0.5rem;">Staff Broadcast:</div>
+                <div class="placeholder-text" style="color: var(--text-primary); font-style: normal;">
+                    "${payload.staff_notification || "No broadcast needed."}"
+                </div>
+            </div>
+        `;
+        opStatusOut.innerHTML = opHtml;
+        
+        // 4. Staff Impact
+        let staffHtml = "";
+        
+        const reporter = payload.reported_by_role;
+        if (reporter) {
+            staffHtml += `
+                <div class="op-row" style="margin-bottom: 1.5rem;">
+                    <span class="op-label">Reported by:</span> ${reporter.role} (${reporter.location})
+                </div>
+            `;
+        }
+        
+        const affected = payload.affected_roles;
+        if (affected && affected.length > 0) {
+            staffHtml += `<div class="op-label" style="margin-bottom: 0.5rem; display:block;">Affected Roles:</div>`;
+            staffHtml += `<ul class="role-list">`;
+            affected.forEach(aff => {
+                staffHtml += `
+                    <li class="role-item">
+                        <div class="role-title">${aff.role}</div>
+                        <div class="role-impact">${aff.impact}</div>
+                    </li>
+                `;
+            });
+            staffHtml += `</ul>`;
+        } else {
+            staffHtml += `<div class="placeholder-text">No lateral staff impact detected.</div>`;
+        }
+        
+        staffImpactOut.innerHTML = staffHtml;
+        
+        // 5. Play Base64 Audio natively
         if (data.spoken_response_base64) {
             const audioSrc = `data:audio/mp3;base64,${data.spoken_response_base64}`;
             player.src = audioSrc;

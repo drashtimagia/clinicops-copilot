@@ -99,8 +99,29 @@ class MockOfflineGenerator(DecisionEngine):
             device_type = "Centrifuge C400"
         
         actions = ["Check power connection.", "Review device manual for error codes."]
+        downtime = "unknown_awaiting_repair"
+        reroute = "Awaiting initial assessment."
+        notification = "Device reported offline. Stand by."
+        impacts = [{"role": "Nurse", "impact": "Delay use of device until assessed."}]
+        
         if "E-04" in incident_text:
              actions = ["Power cycle the device.", "Do not force lid open."]
+             downtime = "temporarily_unavailable_same_shift"
+             reroute = "Use backup manual centrifuge in Lab B."
+             notification = "Lab A centrifuge restarting. Divert STAT samples to Lab B."
+             impacts = [
+                 {"role": "Phlebotomist", "impact": "Walk samples to Lab B for next 30 mins."},
+                 {"role": "Lab Tech", "impact": "Run E-04 clear sequence."}
+             ]
+             
+        if escalate and "biohazard" in text_lower:
+             downtime = "unavailable_same_day"
+             reroute = "Room quarantined. Reroute completely to alternate suites."
+             notification = "BIOHAZARD PROTOCOL. Standard cleaning halted, hazmat notified."
+             impacts = [
+                 {"role": "Doctor", "impact": "Reschedule procedures for this suite."},
+                 {"role": "Janitorial", "impact": "DO NOT ENTER. Specialized team dispatched."}
+             ]
              
         data = {
             "incident_id": incident_id,
@@ -111,6 +132,11 @@ class MockOfflineGenerator(DecisionEngine):
             "memory_match": len(memory_result.similar_incidents) > 0,
             "escalate": escalate,
             "escalation_reason": reasoning,
+            "downtime_bucket": downtime,
+            "reroute_recommendation": reroute,
+            "staff_notification": notification,
+            "reported_by_role": {"role": "Nurse", "location": "Room 1"},
+            "affected_roles": impacts,
             "citations": [c[0].file_name for c in retrieved_chunks]
         }
         

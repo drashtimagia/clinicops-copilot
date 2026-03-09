@@ -21,7 +21,8 @@ class Config:
     # Toggle whether to actually call AWS/Amazon Nova. 
     # Defaults to True (1) for MVP demo reliability without live credentials.
     _mock_val = str(os.getenv("USE_MOCK_MODEL", "1")).lower()
-    MOCK_LLM_RESPONSE = _mock_val in ('1', 'true', 't', 'yes', 'y')
+    USE_MOCK_MODEL = _mock_val in ('1', 'true', 't', 'yes', 'y')
+    MOCK_LLM_RESPONSE = USE_MOCK_MODEL
 
     SYSTEM_PROMPT = """You are the ClinicOps AI Copilot.
 Your job is to analyze clinical device incidents and recommend the Next Best Action for clinic staff.

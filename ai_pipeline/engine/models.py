@@ -12,8 +12,22 @@ class DecisionOutput:
     memory_match: bool
     escalate: bool
     escalation_reason: str
-    citations: List[str]
-    
+    downtime_bucket: str = "available"
+    reroute_recommendation: str = ""
+    staff_notification: str = ""
+    reported_by_role: dict = None
+    affected_roles: List[dict] = None
+    citations: List[str] = None
+
+    def __post_init__(self):
+        # Handle default list/dict instantiation cleanly
+        if self.reported_by_role is None:
+            self.reported_by_role = {"role": "Unknown", "location": "Unknown"}
+        if self.affected_roles is None:
+            self.affected_roles = []
+        if self.citations is None:
+            self.citations = []
+            
     def to_dict(self):
         return {
             "incident_id": self.incident_id,
@@ -24,5 +38,10 @@ class DecisionOutput:
             "memory_match": self.memory_match,
             "escalate": self.escalate,
             "escalation_reason": self.escalation_reason,
+            "downtime_bucket": self.downtime_bucket,
+            "reroute_recommendation": self.reroute_recommendation,
+            "staff_notification": self.staff_notification,
+            "reported_by_role": self.reported_by_role,
+            "affected_roles": self.affected_roles,
             "citations": self.citations
         }

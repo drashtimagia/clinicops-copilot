@@ -25,7 +25,21 @@ You must output STRICTLY raw JSON matching the following schema. Do not wrap it 
   "confidence": <float between 0.0 and 1.0>,
   "memory_match": <boolean>,
   "escalate": <boolean>,
+  "escalate": <boolean>,
   "escalation_reason": "<string or null>",
+  "downtime_bucket": "<enum: available | temporarily_unavailable_same_shift | unavailable_same_day | unavailable_multi_day | unknown_awaiting_repair>",
+  "reroute_recommendation": "<string>",
+  "staff_notification": "<string>",
+  "reported_by_role": {
+    "role": "<string>",
+    "location": "<string>"
+  },
+  "affected_roles": [
+    {
+      "role": "<string>",
+      "impact": "<string>"
+    }
+  ],
   "citations": ["<source_id>", "<source_id>"]
 }
 """

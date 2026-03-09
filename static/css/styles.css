@@ -159,3 +159,55 @@ body {
     margin-bottom: 1rem;
     border: 1px solid rgba(248, 81, 73, 0.3);
 }
+
+/* Operational Impact Extension */
+.op-row {
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+}
+
+.op-label {
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-right: 0.5rem;
+}
+
+.op-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-available { background: rgba(46, 160, 67, 0.15); color: var(--success); border: 1px solid rgba(46, 160, 67, 0.3); }
+.badge-warning { background: rgba(210, 153, 34, 0.15); color: #d29922; border: 1px solid rgba(210, 153, 34, 0.3); }
+.badge-danger { background: rgba(248, 81, 73, 0.15); color: var(--danger); border: 1px solid rgba(248, 81, 73, 0.3); }
+
+.role-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.role-item {
+    background: rgba(48, 54, 61, 0.4);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.role-title {
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.role-impact {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
