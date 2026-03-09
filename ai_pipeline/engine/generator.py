@@ -83,10 +83,15 @@ class MockOfflineGenerator(DecisionEngine):
         
         # Rule 2: Basic keyword hazards
         text_lower = incident_text.lower()
-        if "biohazard" in text_lower or "blood" in text_lower:
+        if "biohazard" in text_lower or "blood has spilled" in text_lower or "blood sample" in text_lower:
             escalate = True
             if not reasoning:
                 reasoning = "Biohazard detected in issue description."
+                
+        if "biological indicator" in text_lower or "sterile" in text_lower or "low pressure" in text_lower or "cracked" in text_lower:
+            escalate = True
+            if not reasoning:
+                reasoning = "Critical safety or sterilization failure detected."
         
         if "monitor" in text_lower or "VPM" in incident_text:
             device_type = "Vitals Monitor M5"
