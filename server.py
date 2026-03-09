@@ -1,7 +1,7 @@
 import os
 import json
 import base64
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 
 # Load the core pipeline API
 from ai_pipeline.api import _initialize_services, process_voice_incident
@@ -15,6 +15,16 @@ except Exception as e:
     print(f"FAILED TO INITIALIZE AI PIPELINE: {e}")
     # We still allow Flask to boot so it can return 500s rather than crashing
     # the container orchestrator endlessly in a reboot loop.
+
+@app.route('/')
+def serve_frontend():
+    """Serve the static Vanilla HTML/JS Voice App."""
+    return send_from_directory('static', 'index.html')
+
+@app.route('/static/<path:path>')
+def serve_static(path):
+    """Serve JS and CSS assets."""
+    return send_from_directory('static', path)
 
 @app.route('/api/v1/voice/incident', methods=['POST'])
 def handle_voice_incident():

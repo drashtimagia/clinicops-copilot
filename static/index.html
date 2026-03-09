@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClinicOps Copilot - Voice</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        
+        <header class="app-header">
+            <div class="logo">🧬 ClinicOps Copilot</div>
+            <div class="status-indicator">
+                <span class="dot active"></span> Backend Connected
+            </div>
+        </header>
+
+        <main class="content">
+            <div class="recording-section">
+                <h2>Voice Incident Logger</h2>
+                <p>Hold the microphone button and describe the device incident.</p>
+                
+                <button id="recordButton" class="mic-button">
+                    <svg viewBox="0 0 24 24" fill="none" class="mic-icon" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" y1="19" x2="12" y2="22"></line>
+                    </svg>
+                </button>
+                <div id="recordingStatus" class="status-text">Ready to Record</div>
+            </div>
+
+            <div class="results-grid">
+                
+                <!-- Panel 1: Transcription -->
+                <div class="panel">
+                    <h3>Transcript</h3>
+                    <div id="transcriptOutput" class="placeholder-text">Audio processing will appear here...</div>
+                </div>
+
+                <!-- Panel 2: Recommended Actions -->
+                <div class="panel">
+                    <h3>Decision Output</h3>
+                    <div id="decisionOutput" class="placeholder-text">AI Copilot recommendations will appear here...</div>
+                </div>
+
+            </div>
+        </main>
+        
+        <!-- Hidden Audio Player for Amazon Nova Base64 Synthetic Speech -->
+        <audio id="syntheticAudioPlayer"></audio>
+        
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
