@@ -26,7 +26,7 @@ class VoiceService:
         print("[VoiceService] Processing Push-To-Talk inbound voice snippet...")
         
         # 1. Transcript Isolation
-        transcript = self.transcriber.transcribe(audio_bytes, audio_format)
+        transcript = self.transcriber.transcribe(audio_bytes, audio_format, metadata=incident_metadata)
         
         # 2. Pipeline Handoff
         # Inject the transcript dynamically into the dictionary payload 
@@ -42,9 +42,12 @@ class VoiceService:
         escalate = decision_dict.get("escalate", False)
         reasoning = decision_dict.get("escalation_reason", "")
         
-        escalation_warning = f"Warning: {reasoning}." if escalate and reasoning else ""
-        final_text_response = f"I've analyzed the incident. {escalation_warning} I recommend the following: {actions_text}".strip()
-        
+        # Grounded, operational response mapping
+        if escalate:
+            final_text_response = f"Escalation required. {reasoning}. Required actions: {actions_text}"
+        else:
+            final_text_response = f"Incident assessed. Required actions: {actions_text}"
+            
         spoken_audio = self.synthesizer.synthesize(final_text_response)
         
         # 4. Strict Payload Fulfillment

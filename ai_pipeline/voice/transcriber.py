@@ -1,5 +1,5 @@
 
-from typing import Optional
+from typing import Optional, Dict, Any
 from ai_pipeline.config import config
 
 class NovaSonicTranscriber:
@@ -27,12 +27,17 @@ class NovaSonicTranscriber:
             aws_session_token=config.AWS_SESSION_TOKEN
         )
 
-    def transcribe(self, audio_bytes: bytes, audio_format: str = "mp3") -> str:
+    def transcribe(self, audio_bytes: bytes, audio_format: str = "mp3", metadata: Dict[str, Any] = None) -> str:
         """
-        Takes raw audio bytes and returns the literal string transcription.
+        Calls Amazon Nova 2 Sonic to convert the audio into text.
         """
-        if config.MOCK_LLM_RESPONSE:
+        if config.USE_MOCK_MODEL:
             print("[VoiceTranscriber] Using Mock Offline Mode")
+            if metadata and metadata.get("description"):
+                return metadata.get("description")
+            # In offline mock mode, if the pipeline was fed a dummy metadata dict 
+            # with a description (like in demo_voice_scenarios), we assume that was 
+            # the intended transcript. Otherwise fallback to a default string.
             return "The centrifuge in Lab A is throwing an E-04 error."
             
         try:
