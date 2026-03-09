@@ -34,10 +34,20 @@
 
             <div class="results-grid">
                 
-                <!-- Panel 1: Transcription -->
+                <!-- Panel 1: Conversation History -->
                 <div class="panel">
-                    <h3>Transcript</h3>
-                    <div id="transcriptOutput" class="placeholder-text">Audio processing will appear here...</div>
+                    <h3>Conversation</h3>
+                    <div id="transcriptOutput" class="chat-container">
+                        <span class="placeholder-text">Audio processing will appear here...</span>
+                    </div>
+                </div>
+
+                <!-- Panel 2: Extracted Details -->
+                <div class="panel">
+                    <h3>Extracted Details</h3>
+                    <div id="slotsOutput" class="slot-container">
+                        <span class="placeholder-text">Listening for problem details...</span>
+                    </div>
                 </div>
 
                 <!-- Panel 2: Recommended Actions -->

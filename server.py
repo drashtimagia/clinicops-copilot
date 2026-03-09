@@ -75,6 +75,9 @@ def handle_voice_incident():
             "status": "success",
             "data": {
                 "transcript": result.get("transcript"),
+                "status": result.get("status"),
+                "history": result.get("history", []),
+                "extracted_slots": result.get("extracted_slots", {}),
                 "final_text_response": result.get("final_text_response"),
                 "pipeline_handoff_payload": result.get("pipeline_handoff_payload"),
                 "spoken_response_base64": b64_audio

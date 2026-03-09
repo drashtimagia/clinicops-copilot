@@ -211,3 +211,77 @@ body {
     font-size: 0.9rem;
     color: var(--text-primary);
 }
+
+/* Conversational UI */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.chat-bubble {
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    max-width: 85%;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.chat-user {
+    background: rgba(88, 166, 255, 0.15);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    align-self: flex-end;
+    border-bottom-right-radius: 2px;
+}
+
+.chat-assistant {
+    background: rgba(48, 54, 61, 0.5);
+    border: 1px solid var(--border);
+    align-self: flex-start;
+    border-bottom-left-radius: 2px;
+}
+
+.chat-role {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+    opacity: 0.7;
+}
+
+/* Slot Extraction UI */
+.slot-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.slot-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+}
+
+.slot-label {
+    font-weight: 500;
+    color: var(--text-dim);
+}
+
+.slot-value {
+    font-weight: 600;
+}
+
+.slot-missing {
+    color: var(--danger);
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+.slot-filled {
+    color: var(--success);
+}

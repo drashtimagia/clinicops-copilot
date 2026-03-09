@@ -12,6 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let mediaRecorder = null;
     let audioChunks = [];
     
+    // Generate a simple unique session ID for the conversational loop
+    const sessionId = "session_" + Math.random().toString(36).substring(2, 10);
+
+    
     // Attempt to request mic permissions immediately on load for the hackathon
     navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
@@ -70,16 +74,22 @@ document.addEventListener('DOMContentLoaded', () => {
         // Inject fake hackathon context metadata 
         // (In a real app, this comes from the current Clinic Dashboard view)
         const metadata = {
+            session_id: sessionId,
             incident_id: "HACKATHON-DEMO-001",
-            device_id: "Centrifuge C400",
+            device_id: "Unknown Device",
             reporter: "Web Copilot Frontend"
         };
         formData.append('metadata', JSON.stringify(metadata));
         
         try {
             // Loading State UI Update
-            transcriptOut.innerHTML = "<span style='color: var(--text-dim)'>Transcribing audio...</span>";
-            decisionOut.innerHTML = "<span style='color: var(--text-dim)'>Analyzing manual DB...</span>";
+            transcriptOut.innerHTML += `<div class="chat-bubble chat-user"><span class="placeholder-text">Audio sent, waiting for analysis...</span></div>`;
+            transcriptOut.scrollTop = transcriptOut.scrollHeight;
+            
+            // Clear downstream panels if this is an active conversation
+            decisionOut.innerHTML = "<span class='placeholder-text'>Analyzing manual DB...</span>";
+            opStatusOut.innerHTML = "<span class='placeholder-text'>Hardware impact and routing will appear here...</span>";
+            staffImpactOut.innerHTML = "<span class='placeholder-text'>Role-based assignments will appear here...</span>";
             
             // Execute the REST fetch
             const response = await fetch('/api/v1/voice/incident', {
@@ -104,84 +114,127 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function renderResults(data) {
-        // 1. Transcript
-        transcriptOut.innerHTML = `<div>${data.transcript}</div>`;
-        
-        // 2. Decision Logic
-        let decisionHtml = "";
-        
-        const payload = data.pipeline_handoff_payload;
-        if (payload.escalate) {
-            decisionHtml += `<div class="escalate-badge">🚨 ESCALATION REQUIRED: ${payload.escalation_reason}</div>`;
-        }
-        
-        if (payload.recommended_actions && payload.recommended_actions.length > 0) {
-            payload.recommended_actions.forEach(action => {
-                decisionHtml += `<div class="action-item">${action}</div>`;
-            });
-        }
-        
-        decisionOut.innerHTML = decisionHtml || "<span class='placeholder-text'>No actions required.</span>";
-        
-        // 3. Operational Status
-        let opHtml = "";
-        const downtime = payload.downtime_bucket || "unknown";
-        
-        let badgeClass = "badge-available";
-        if (downtime.includes("temporarily")) badgeClass = "badge-warning";
-        else if (downtime.includes("unavailable")) badgeClass = "badge-danger";
-        
-        const friendlyDowntime = downtime.replace(/_/g, " ");
-        
-        opHtml += `
-            <div class="op-row">
-                <span class="op-label">Downtime:</span>
-                <span class="op-badge ${badgeClass}">${friendlyDowntime}</span>
-            </div>
-            <div class="op-row">
-                <span class="op-label">Reroute:</span> ${payload.reroute_recommendation || "N/A"}
-            </div>
-            <div class="op-row" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-                <div class="op-label" style="display: block; margin-bottom: 0.5rem;">Staff Broadcast:</div>
-                <div class="placeholder-text" style="color: var(--text-primary); font-style: normal;">
-                    "${payload.staff_notification || "No broadcast needed."}"
-                </div>
-            </div>
-        `;
-        opStatusOut.innerHTML = opHtml;
-        
-        // 4. Staff Impact
-        let staffHtml = "";
-        
-        const reporter = payload.reported_by_role;
-        if (reporter) {
-            staffHtml += `
-                <div class="op-row" style="margin-bottom: 1.5rem;">
-                    <span class="op-label">Reported by:</span> ${reporter.role} (${reporter.location})
-                </div>
-            `;
-        }
-        
-        const affected = payload.affected_roles;
-        if (affected && affected.length > 0) {
-            staffHtml += `<div class="op-label" style="margin-bottom: 0.5rem; display:block;">Affected Roles:</div>`;
-            staffHtml += `<ul class="role-list">`;
-            affected.forEach(aff => {
-                staffHtml += `
-                    <li class="role-item">
-                        <div class="role-title">${aff.role}</div>
-                        <div class="role-impact">${aff.impact}</div>
-                    </li>
+        // 1. Conversation History Updates
+        if (data.history && data.history.length > 0) {
+            let historyHtml = "";
+            data.history.forEach(msg => {
+                const bubbleClass = msg.role === 'user' ? 'chat-user' : 'chat-assistant';
+                const roleLabel = msg.role === 'user' ? 'You' : 'Copilot';
+                historyHtml += `
+                    <div class="chat-bubble ${bubbleClass}">
+                        <div class="chat-role">${roleLabel}</div>
+                        <div>${msg.text}</div>
+                    </div>
                 `;
             });
-            staffHtml += `</ul>`;
-        } else {
-            staffHtml += `<div class="placeholder-text">No lateral staff impact detected.</div>`;
+            transcriptOut.innerHTML = historyHtml;
+            transcriptOut.scrollTop = transcriptOut.scrollHeight;
+        }
+
+        // 2. Extracted Slots Update
+        const slotsOut = document.getElementById('slotsOutput');
+        if (slotsOut && data.extracted_slots) {
+            const slots = data.extracted_slots;
+            
+            const renderSlot = (label, value) => {
+                const isMissing = value === null || value === undefined;
+                const valueHtml = isMissing 
+                    ? `<span class="slot-missing">Missing</span>`
+                    : `<span class="slot-filled">${value}</span>`;
+                return `
+                    <div class="slot-row">
+                        <span class="slot-label">${label}</span>
+                        <span class="slot-value">${valueHtml}</span>
+                    </div>
+                `;
+            };
+            
+            slotsOut.innerHTML = `
+                ${renderSlot("Reporter Role", slots.reported_by_role)}
+                ${renderSlot("Room/Location", slots.room)}
+                ${renderSlot("Machine", slots.machine)}
+                ${renderSlot("Problem", slots.problem)}
+            `;
+        }
+
+        // If still clarifying, we do NOT render the heavy AI pipeline panels yet.
+        if (data.status === "clarifying") {
+            decisionOut.innerHTML = "<span class='placeholder-text'>Waiting for missing details before triggering manuals...</span>";
+        } 
+        else if (data.status === "complete") {
+            // 3. Decision Logic
+            let decisionHtml = "";
+            const payload = data.pipeline_handoff_payload;
+            
+            if (payload && payload.escalate) {
+                decisionHtml += `<div class="escalate-badge">🚨 ESCALATION REQUIRED: ${payload.escalation_reason}</div>`;
+            }
+            
+            if (payload && payload.recommended_actions && payload.recommended_actions.length > 0) {
+                payload.recommended_actions.forEach(action => {
+                    decisionHtml += `<div class="action-item">${action}</div>`;
+                });
+            }
+            decisionOut.innerHTML = decisionHtml || "<span class='placeholder-text'>No actions required.</span>";
+            
+            // 4. Operational Status
+            let opHtml = "";
+            const downtime = payload ? (payload.downtime_bucket || "unknown") : "unknown";
+            
+            let badgeClass = "badge-available";
+            if (downtime.includes("temporarily")) badgeClass = "badge-warning";
+            else if (downtime.includes("unavailable")) badgeClass = "badge-danger";
+            
+            const friendlyDowntime = downtime.replace(/_/g, " ");
+            
+            opHtml += `
+                <div class="op-row">
+                    <span class="op-label">Downtime:</span>
+                    <span class="op-badge ${badgeClass}">${friendlyDowntime}</span>
+                </div>
+                <div class="op-row">
+                    <span class="op-label">Reroute:</span> ${payload ? (payload.reroute_recommendation || "N/A") : "N/A"}
+                </div>
+                <div class="op-row" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <div class="op-label" style="display: block; margin-bottom: 0.5rem;">Staff Broadcast:</div>
+                    <div class="placeholder-text" style="color: var(--text-primary); font-style: normal;">
+                        "${payload ? (payload.staff_notification || "No broadcast needed.") : "No broadcast needed."}"
+                    </div>
+                </div>
+            `;
+            opStatusOut.innerHTML = opHtml;
+            
+            // 5. Staff Impact
+            let staffHtml = "";
+            const reporter = payload ? payload.reported_by_role : null;
+            if (reporter) {
+                staffHtml += `
+                    <div class="op-row" style="margin-bottom: 1.5rem;">
+                        <span class="op-label">Reported by:</span> ${reporter.role} (${reporter.location})
+                    </div>
+                `;
+            }
+            
+            const affected = payload ? payload.affected_roles : null;
+            if (affected && affected.length > 0) {
+                staffHtml += `<div class="op-label" style="margin-bottom: 0.5rem; display:block;">Affected Roles:</div>`;
+                staffHtml += `<ul class="role-list">`;
+                affected.forEach(aff => {
+                    staffHtml += `
+                        <li class="role-item">
+                            <div class="role-title">${aff.role}</div>
+                            <div class="role-impact">${aff.impact}</div>
+                        </li>
+                    `;
+                });
+                staffHtml += `</ul>`;
+            } else {
+                staffHtml += `<div class="placeholder-text">No lateral staff impact detected.</div>`;
+            }
+            staffImpactOut.innerHTML = staffHtml;
         }
         
-        staffImpactOut.innerHTML = staffHtml;
-        
-        // 5. Play Base64 Audio natively
+        // 6. Play Base64 Audio natively (works for both Clarification and Complete states)
         if (data.spoken_response_base64) {
             const audioSrc = `data:audio/mp3;base64,${data.spoken_response_base64}`;
             player.src = audioSrc;
