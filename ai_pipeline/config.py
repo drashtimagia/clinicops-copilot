@@ -16,7 +16,7 @@ class Config:
     ENABLE_VOICE = _enable_voice_str in ('1', 'true', 't', 'yes', 'y')
     NOVA_VOICE_MODEL_ID = os.getenv("NOVA_VOICE_MODEL_ID", "amazon.nova-2-sonic-v1:0")
     VOICE_LOCALE = os.getenv("VOICE_LOCALE", "en-US")
-    VOICE_ID = os.getenv("VOICE_ID", "Joanna")
+    VOICE_ID = os.getenv("VOICE_ID", "tiffany")
     
     # Toggle whether to actually call AWS/Amazon Nova. 
     # Defaults to True (1) for MVP demo reliability without live credentials.

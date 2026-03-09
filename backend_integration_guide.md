@@ -85,7 +85,7 @@ You can define Voice properties (Defaults to enabled):
 - `ENABLE_VOICE=1`
 - `NOVA_VOICE_MODEL_ID` (e.g. `amazon.nova-2-sonic-v1:0`)
 - `VOICE_LOCALE` (e.g. `en-US`)
-- `VOICE_ID` (e.g. `Joanna`)
+- `VOICE_ID` (e.g. `tiffany`)
 
 ## 4. Failure Modes
 When the web server starts and imports `ai_pipeline.api`:
