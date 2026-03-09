@@ -1,7 +1,7 @@
 import json
 from .models import PipelineResponse, Citation
 from .retriever import Retriever
-from .. import config
+from ..config import config
 
 class Orchestrator:
     def __init__(self):
