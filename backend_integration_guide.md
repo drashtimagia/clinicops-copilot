@@ -27,7 +27,7 @@ def handle_incident(request):
 
 ## 2. API Contract
 
-### Request Schema (Input)
+### Text Request Schema (Input)
 `process_incident(payload: dict)` expects the following dictionary:
 ```json
 {
@@ -37,26 +37,29 @@ def handle_incident(request):
   "reporter": "Nurse Jane"
 }
 ```
-*Note: `description` is required. `device_id` is crucial for the "Three Strikes" chronological memory layer.*
+*Note: `description` is required for text processing.*
+
+### Voice Request Schema (Input)
+`process_voice_incident(audio_format, audio_bytes, payload: dict)` expects raw audio in bytes and the same metadata above (but without `description`, as the transcriber generates it).
 
 ### Response Schema (Output)
-The function returns a strict JSON-compatible dictionary:
+`process_incident` returns a strict JSON-compatible dictionary. 
+`process_voice_incident` wraps the decision dictionary inside a larger multimodal payload:
 ```json
 {
-  "incident_id": "INC-011",
-  "device_type": "Vitals Monitor M5",
-  "diagnosis": "Simulated evaluation of input issue.",
-  "recommended_actions": [
-    "Check power connection.",
-    "Review device manual for error codes."
-  ],
-  "confidence": 0.95,
-  "memory_match": true,
-  "escalate": true,
-  "escalation_reason": "Memory Match: 3rd strike rule activated for VPM5-9002 specific serial.",
-  "citations": [
-    "vitals-monitor-m5.md"
-  ]
+  "decision": {
+    "incident_id": "INC-011",
+    "device_type": "Vitals Monitor M5",
+    "diagnosis": "...",
+    "recommended_actions": ["..."],
+    "confidence": 0.95,
+    "memory_match": true,
+    "escalate": true,
+    "escalation_reason": "...",
+    "citations": ["vitals-monitor-m5.md"]
+  },
+  "transcript": "literal spoken text",
+  "response_audio": b"..."
 }
 ```
 
@@ -74,9 +77,15 @@ You must provide *either*:
 1. Standard AWS Credentials: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION`
 2. OR Bearer Token: `AWS_BEARER_TOKEN_BEDROCK` and `AWS_REGION`
 
-You must also define:
+You must also define Core properties:
 - `NOVA_TEXT_MODEL_ID` (e.g., `amazon.nova-micro-v1:0`)
 - `NOVA_EMBED_MODEL_ID` (e.g., `amazon.titan-embed-text-v1`)
+
+You can define Voice properties (Defaults to enabled):
+- `ENABLE_VOICE=1`
+- `NOVA_VOICE_MODEL_ID` (e.g. `amazon.nova-2-sonic-v1:0`)
+- `VOICE_LOCALE` (e.g. `en-US`)
+- `VOICE_ID` (e.g. `Joanna`)
 
 ## 4. Failure Modes
 When the web server starts and imports `ai_pipeline.api`:

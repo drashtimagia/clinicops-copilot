@@ -40,7 +40,7 @@ class VoiceSynthesizer:
             response = self.client.synthesize_speech(
                 Text=text,
                 OutputFormat='mp3',
-                VoiceId='Joanna', # Standard clear clinical voice
+                VoiceId=config.VOICE_ID,
                 Engine='neural'   # Highest quality
             )
             

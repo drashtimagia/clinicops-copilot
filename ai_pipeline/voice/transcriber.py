@@ -7,8 +7,7 @@ class NovaSonicTranscriber:
     Push-to-talk Speech-to-Text using Amazon Nova 2 Sonic via the Bedrock Converse API.
     """
     def __init__(self):
-        self.model_id = "amazon.nova-pro-v1:0" # Fallback to Pro if Sonic is unavailable in this exact environment/region, but same Converse API structure applies
-        # If nova-sonic-v1 becomes the exact endpoint identifier, it drops in perfectly.
+        self.model_id = config.NOVA_VOICE_MODEL_ID 
         
         # When in mock mode, do not require real AWS credentials
         if config.MOCK_LLM_RESPONSE:

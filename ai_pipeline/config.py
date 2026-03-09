@@ -11,6 +11,13 @@ class Config:
     NOVA_TEXT_MODEL_ID = os.getenv("NOVA_TEXT_MODEL_ID", "amazon.nova-micro-v1:0")
     NOVA_EMBED_MODEL_ID = os.getenv("NOVA_EMBED_MODEL_ID", "amazon.titan-embed-text-v1")
     
+    # Multimodal Voice Support (Nova 2 Sonic MVP)
+    _enable_voice_str = str(os.getenv("ENABLE_VOICE", "1")).lower()
+    ENABLE_VOICE = _enable_voice_str in ('1', 'true', 't', 'yes', 'y')
+    NOVA_VOICE_MODEL_ID = os.getenv("NOVA_VOICE_MODEL_ID", "amazon.nova-2-sonic-v1:0")
+    VOICE_LOCALE = os.getenv("VOICE_LOCALE", "en-US")
+    VOICE_ID = os.getenv("VOICE_ID", "Joanna")
+    
     # Toggle whether to actually call AWS/Amazon Nova. 
     # Defaults to True (1) for MVP demo reliability without live credentials.
     _mock_val = str(os.getenv("USE_MOCK_MODEL", "1")).lower()
@@ -51,6 +58,9 @@ Analyze the user's issue, map it to the retrieved context, and return strictly J
                 
             if not cls.NOVA_TEXT_MODEL_ID or not cls.NOVA_EMBED_MODEL_ID:
                 raise ValueError("Configuration Error: Nova Model IDs missing from environment.")
+                
+            if cls.ENABLE_VOICE and not cls.NOVA_VOICE_MODEL_ID:
+                 raise ValueError("Configuration Error: NOVA_VOICE_MODEL_ID must be set if ENABLE_VOICE=1 and USE_MOCK_MODEL=0.")
 
 # Instantiate a global config object correctly pointing to attributes
 config = Config()
