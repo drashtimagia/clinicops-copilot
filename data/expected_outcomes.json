@@ -1,0 +1,42 @@
+{
+  "INC-001": {
+    "expected_escalate": false,
+    "expected_action_summary": "Routine battery replacement as per manual."
+  },
+  "INC-002": {
+    "expected_escalate": false,
+    "expected_action_summary": "Routine latch clear, no further action needed."
+  },
+  "INC-003": {
+    "expected_escalate": true,
+    "expected_action_summary": "Safety critical. Must lock device out of service and escalate to Facilities per manual."
+  },
+  "INC-004": {
+    "expected_escalate": false,
+    "expected_action_summary": "Second strike on battery replacement. Log warning per SOP-012."
+  },
+  "INC-005": {
+    "expected_escalate": false,
+    "expected_action_summary": "Power cycle device per E-04 manual instructions. Do not force lid."
+  },
+  "INC-006": {
+    "expected_escalate": true,
+    "expected_action_summary": "Safety critical (seal compromised). Lock out of service and escalate to Facilities."
+  },
+  "INC-007": {
+    "expected_escalate": true,
+    "expected_action_summary": "Third strike memory-aware escalation. Remove from service and escalate to External Vendor per SOP-012."
+  },
+  "INC-008": {
+    "expected_escalate": true,
+    "expected_action_summary": "Biohazard inside mechanical equipment. Danger. Quarantine device and call EVS and Biomed per SOP-011."
+  },
+  "INC-009": {
+    "expected_escalate": false,
+    "expected_action_summary": "Run internal pump recalibration per manual."
+  },
+  "INC-010": {
+    "expected_escalate": false,
+    "expected_action_summary": "Routine maintenance item."
+  }
+}

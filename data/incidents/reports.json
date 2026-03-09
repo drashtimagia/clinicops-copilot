@@ -1,0 +1,72 @@
+[
+  {
+    "id": "INC-001",
+    "timestamp": "2024-10-01T08:15:00Z",
+    "device": "VitalsPro M5 Monitor (Serial: VPM5-9002)",
+    "description": "Monitor shut off during patient transport. Replaced with fully charged battery from supply. Device back online.",
+    "reporter": "Nurse Jane D."
+  },
+  {
+    "id": "INC-002",
+    "timestamp": "2024-10-02T14:30:00Z",
+    "device": "CentraSpin C400 Centrifuge",
+    "description": "E-02 error. The lid wouldn't close. Found a piece of tape on the latch. Removed it, device working normally.",
+    "reporter": "Lab Tech Mike T."
+  },
+  {
+    "id": "INC-003",
+    "timestamp": "2024-10-03T09:00:00Z",
+    "device": "SteriPro Autoclave",
+    "description": "The biological indicator test strip failed after the morning cycle. The instruments are not sterile.",
+    "reporter": "Surgical Tech Sarah C."
+  },
+  {
+    "id": "INC-004",
+    "timestamp": "2024-10-05T11:45:00Z",
+    "device": "VitalsPro M5 Monitor (Serial: VPM5-9002)",
+    "description": "Monitor shut off again during transport, battery died even though dock showed solid green. Replaced battery again.",
+    "reporter": "Nurse Jane D."
+  },
+  {
+    "id": "INC-005",
+    "timestamp": "2024-10-06T10:15:00Z",
+    "device": "CentraSpin C400 Centrifuge",
+    "description": "E-04 Imbalance error mid-cycle. The rotor was perfectly balanced though. The motor made a loud grinding noise and spun down.",
+    "reporter": "Lab Tech Lisa W."
+  },
+  {
+    "id": "INC-006",
+    "timestamp": "2024-10-06T16:00:00Z",
+    "device": "SteriPro Autoclave",
+    "description": "Screen showing 'Low Pressure' during the heat-seal cycle. The door seal looks brittle and cracked.",
+    "reporter": "Surgical Tech Mark B."
+  },
+  {
+    "id": "INC-007",
+    "timestamp": "2024-10-07T08:30:00Z",
+    "device": "VitalsPro M5 Monitor (Serial: VPM5-9002)",
+    "description": "Third time this week: Monitor shut off midway down the hall. We've swapped the battery three times now and the dock is fine.",
+    "reporter": "Floor Manager Drashti M."
+  },
+  {
+    "id": "INC-008",
+    "timestamp": "2024-10-08T13:20:00Z",
+    "device": "CentraSpin C400 Centrifuge",
+    "description": "Blood sample tube broke inside during the run. Blood has spilled into the enclosed motor housing. We powered it off.",
+    "reporter": "Lab Tech Mike T."
+  },
+  {
+    "id": "INC-009",
+    "timestamp": "2024-10-09T09:10:00Z",
+    "device": "VitalsPro M5 Monitor (Serial: VPM5-1044)",
+    "description": "Blood pressure cuff won't inflate. Hose is not kinked.",
+    "reporter": "Nurse Sam P."
+  },
+  {
+    "id": "INC-010",
+    "timestamp": "2024-10-10T12:00:00Z",
+    "device": "CentraSpin C400 Centrifuge",
+    "description": "Timer knob fell off. Stuck it back on, seems okay.",
+    "reporter": "Lab Manager Dave S."
+  }
+]
