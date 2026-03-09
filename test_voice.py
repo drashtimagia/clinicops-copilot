@@ -29,14 +29,16 @@ def test_voice_entrypoint():
         payload=payload_metadata
     )
     
-    print("--- PIPELINE OUTPUT ---")
+    print("--- NEW MULTIMODAL ISOLATED OUTPUT ---")
     print(f">> TRANSCRIPT:\n{result['transcript']}\n")
     
-    print(f">> DECISION JSON:")
-    print(json.dumps(result['decision'], indent=2))
+    print(f">> FINAL TEXT RESPONSE:\n{result['final_text_response']}\n")
+    
+    print(f">> PIPELINE HANDOFF PAYLOAD (Core Engine JSON):")
+    print(json.dumps(result['pipeline_handoff_payload'], indent=2))
     
     print(f"\n>> RESPONSE AUDIO:")
-    audio_out = result['response_audio']
+    audio_out = result['spoken_response_data']
     if audio_out:
         print(f"Successfully generated {len(audio_out)} bytes of TTS audio.")
     else:

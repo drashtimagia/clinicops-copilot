@@ -7,8 +7,7 @@ from ai_pipeline.data_ingestion.ingest import process_directory, MANUALS_DIR, SO
 from ai_pipeline.retrieval.service import RetrievalService
 from ai_pipeline.memory.matcher import MemoryMatcher
 from ai_pipeline.engine.generator import get_decision_engine
-from ai_pipeline.voice.transcriber import NovaSonicTranscriber
-from ai_pipeline.voice.synthesizer import VoiceSynthesizer
+from ai_pipeline.voice.service import VoiceService
 
 # -------------------------------------------------------------
 # Module State (Warm Start)
@@ -19,11 +18,10 @@ from ai_pipeline.voice.synthesizer import VoiceSynthesizer
 _retrieval_service = None
 _memory_matcher = None
 _decision_engine = None
-_transcriber = None
-_synthesizer = None
+_voice_service = None
 
 def _initialize_services():
-    global _retrieval_service, _memory_matcher, _decision_engine, _transcriber, _synthesizer
+    global _retrieval_service, _memory_matcher, _decision_engine, _voice_service
     
     # 1. Validate Config environment immediately
     try:
@@ -43,8 +41,9 @@ def _initialize_services():
     _retrieval_service = RetrievalService(chunks)
     _memory_matcher = MemoryMatcher()
     _decision_engine = get_decision_engine()
-    _transcriber = NovaSonicTranscriber()
-    _synthesizer = VoiceSynthesizer()
+    
+    if config.ENABLE_VOICE:
+        _voice_service = VoiceService()
     
     print("[AI Pipeline] Services warm and ready.")
 
@@ -96,39 +95,27 @@ def process_incident(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 def process_voice_incident(audio_bytes: bytes, audio_format: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Voice-native entrypoint for the backend web server.
+    Multimodal Push-To-Talk voice extension for the core pipeline.
     
-    Takes raw audio push-to-talk bytes, a format string (e.g. 'mp3', 'wav'), 
-    and the standard payload (without description).
+    Takes raw audio bytes, an audio format string, and dict metadata.
+    Delegates audio transcription, multimodal extraction, and synthesis 
+    entirely to the isolated VoiceService layer.
     
-    Returns:
+    Returns standard payload:
     {
-       "decision": <DecisionOutput json dict>,
-       "transcript": "string",
-       "response_audio": <raw bytes or None>
+      "transcript": "string",
+      "spoken_response_data": bytes,
+      "final_text_response": "string",
+      "pipeline_handoff_payload": dict
     }
     """
-    # 1. Speech-to-Text via Nova 2 Sonic
-    transcript = _transcriber.transcribe(audio_bytes, audio_format=audio_format)
-    
-    # 2. Inject transcript back into the standard pipeline payload
-    payload["description"] = transcript
-    
-    # 3. Run the exact same core pipeline text logic
-    decision_dict = process_incident(payload)
-    
-    # 4. Text-to-Speech (Summarize the top actions)
-    # Give the TTS engine a clean conversational sentence to read back
-    actions_text = " ".join(decision_dict["recommended_actions"])
-    escalation_text = f"Warning: {decision_dict['escalation_reason']}." if decision_dict["escalate"] else ""
-    spoken_summary = f"I've analyzed the incident. {escalation_text} I recommend the following: {actions_text}"
-    
-    response_audio = _synthesizer.synthesize(spoken_summary)
-    
-    # 5. Return the full multimodal bundle
-    return {
-        "decision": decision_dict,
-        "transcript": transcript,
-        "response_audio": response_audio
-    }
+    if not config.ENABLE_VOICE:
+        raise ValueError("ENABLE_VOICE is false in config. Voice endpoint is unavailable.")
+        
+    return _voice_service.process_push_to_talk(
+        audio_bytes=audio_bytes, 
+        audio_format=audio_format, 
+        incident_metadata=payload,
+        core_pipeline_func=process_incident
+    )
 
