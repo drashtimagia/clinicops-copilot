@@ -34,7 +34,7 @@ class VoiceSynthesizer:
         """
         if config.MOCK_LLM_RESPONSE:
             print("[VoiceSynthesizer] Using Mock Offline Mode")
-            return b"MOCK_AUDIO_BYTES_DATADATADATA"
+            return None
             
         try:
             response = self.client.synthesize_speech(

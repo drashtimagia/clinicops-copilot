@@ -20,6 +20,8 @@ class VoiceService:
         if session_id not in self.sessions:
             self.sessions[session_id] = {
                 "history": [],
+                "pipeline_completed": False,
+                "last_asked_slot": None,
                 "slots": {
                     "reported_by_role": None,
                     "problem": None,
@@ -41,10 +43,10 @@ class VoiceService:
         elif "reception" in t: current_slots["reported_by_role"] = "Receptionist"
         elif "tech" in t: current_slots["reported_by_role"] = "Technician"
         
-        if "room 1" in t: current_slots["room"] = "Room 1"
-        elif "room 2" in t: current_slots["room"] = "Room 2"
-        elif "room 3" in t: current_slots["room"] = "Room 3"
-        elif "room 4" in t: current_slots["room"] = "Room 4"
+        import re
+        room_match = re.search(r'(room\s+[0-9a-z])', t)
+        if room_match:
+            current_slots["room"] = room_match.group(1).title()
         elif "lab a" in t: current_slots["room"] = "Lab A"
         elif "lab b" in t: current_slots["room"] = "Lab B"
         elif "hallway" in t: current_slots["room"] = "Hallway"
@@ -64,6 +66,13 @@ class VoiceService:
         elif "down" in t or "broken" in t: current_slots["problem"] = "Device reported as down/broken."
         
         return current_slots
+        
+    def _get_next_missing_slot(self, slots: Dict[str, Any]) -> str:
+        if not slots["machine"]: return "machine"
+        if not slots["problem"]: return "problem"
+        if not slots["room"]: return "room"
+        if not slots["reported_by_role"]: return "reported_by_role"
+        return ""
         
     def _generate_clarification(self, slots: Dict[str, Any]) -> Optional[str]:
         """Determines what is missing and asks the user."""
@@ -92,14 +101,58 @@ class VoiceService:
         transcript = self.transcriber.transcribe(audio_bytes, audio_format, metadata=incident_metadata)
         session["history"].append({"role": "user", "text": transcript})
         
+        # GENERALIZATION 1: POST-INCIDENT Q&A
+        # If the incident is already processed, intercept ANY future prompt and answer conversationally
+        # instead of infinitely looping the same pipeline output!
+        if session.get("pipeline_completed"):
+            print(f"[VoiceService] Handling post-incident conversational prompt: '{transcript}'")
+            # In a live env, call Bedrock Nova. Offline, generate a realistic contextual mock response.
+            if config.USE_MOCK_MODEL:
+                t_lower = transcript.lower()
+                device_name = session.get("slots", {}).get("machine", "the device")
+                
+                # Dynamic Mock Heurostics for Hackathon Demo QA
+                if "manual" in t_lower or "link" in t_lower or "document" in t_lower:
+                    final_text_response = f"Certainly! You can access the official manual for {device_name} at clinicops.internal/manuals/{device_name.replace(' ', '-').lower()}.pdf. Would you like me to dispatch Biomedical Engineering while you review it?"
+                elif "power" in t_lower or "connected" in t_lower or "plugged" in t_lower or "ball" in t_lower:
+                    final_text_response = "Thank you for confirming the power is firmly connected. Given that the screen remains unresponsive, this strongly indicates an internal hardware failure. I have escalated the replacement request to Biomedical Engineering."
+                elif "tech" in t_lower or "dispatch" in t_lower or "yes" in t_lower:
+                    final_text_response = "Understood. I have dispatched a Biomedical Technician to your location. They should arrive shortly."
+                elif "battery" in t_lower or "reseat" in t_lower:
+                    final_text_response = "To reseat the battery, slide the rear panel down, remove the battery bundle for 10 seconds, then click it back into place securely."
+                else:
+                    final_text_response = f"I've updated the incident log with that information: '{transcript}'. Let me know if you need anything else."
+            else:
+                final_text_response = "Live Amazon Nova Q&A fallback triggered for your question."
+                
+            session["history"].append({"role": "assistant", "text": final_text_response})
+            return {
+                "status": "complete",
+                "transcript": transcript,
+                "history": session["history"],
+                "extracted_slots": session.get("slots"),
+                "final_text_response": final_text_response,
+                "spoken_response_data": self.synthesizer.synthesize(final_text_response),
+                "pipeline_handoff_payload": incident_metadata.get("cached_payload") # Returns previous UI state
+            }
+            
         # 2. Slot Extraction
+        # GENERALIZATION 2: Dynamic offline extraction
+        # If a question was explicitly asked last turn, blindly capture the user's answer into that slot
+        # to ensure it can handle unknown data.
+        last_slot = session.get("last_asked_slot")
+        if last_slot and not session["slots"][last_slot] and len(transcript.strip()) > 1:
+            session["slots"][last_slot] = transcript.strip().title()
+            
         extracted_slots = self._extract_slots(transcript, session["slots"])
         session["slots"] = extracted_slots
         
-        missing_question = self._generate_clarification(extracted_slots)
-        
         # 3. Conversational Loop (Incomplete)
-        if missing_question:
+        missing_slot_key = self._get_next_missing_slot(extracted_slots)
+        if missing_slot_key:
+            session["last_asked_slot"] = missing_slot_key
+            missing_question = self._generate_clarification(extracted_slots)
+            
             session["history"].append({"role": "assistant", "text": missing_question})
             spoken_audio = self.synthesizer.synthesize(missing_question)
             return {
@@ -115,7 +168,6 @@ class VoiceService:
         # 4. Pipeline Handoff (Complete)
         print(f"[VoiceService] Slots complete for session {session_id}. Handing off to Core.")
         
-        # Synthesize the final problem description combining all gathered slots
         combined_description = (
             f"Reported by {extracted_slots['reported_by_role']} in {extracted_slots['room']}. "
             f"Machine: {extracted_slots['machine']}. "
@@ -126,8 +178,10 @@ class VoiceService:
         handoff_payload["description"] = combined_description
         handoff_payload["device_id"] = extracted_slots['machine']
         
-        # Invoke core Pipeline
         decision_dict = core_pipeline_func(handoff_payload)
+        
+        # Lock the state machine!
+        session["pipeline_completed"] = True
         
         # 5. Generative Response Synthesis
         actions_text = " ".join(decision_dict.get("recommended_actions", []))
@@ -142,7 +196,6 @@ class VoiceService:
         session["history"].append({"role": "assistant", "text": final_text_response})
         spoken_audio = self.synthesizer.synthesize(final_text_response)
         
-        # Return strict combined payload
         return {
             "status": "complete",
             "transcript": transcript,

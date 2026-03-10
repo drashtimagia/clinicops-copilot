@@ -15,7 +15,35 @@ document.addEventListener('DOMContentLoaded', () => {
     // Generate a simple unique session ID for the conversational loop
     const sessionId = "session_" + Math.random().toString(36).substring(2, 10);
 
+    // Web Speech API for native browser transcription (Overrides Hardcoded backend string)
+    let finalTranscript = "";
+    let interimTranscript = "";
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
     
+    if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        
+        recognition.onresult = (event) => {
+            interimTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                } else {
+                    interimTranscript += event.results[i][0].transcript;
+                }
+            }
+            // Show live typing
+            statusText.textContent = 'Listening: ' + (finalTranscript + interimTranscript);
+        };
+        
+        recognition.onerror = (event) => {
+            console.error("Speech recognition error", event.error);
+        };
+    }
+
     // Attempt to request mic permissions immediately on load for the hackathon
     navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
@@ -49,6 +77,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!mediaRecorder) return;
         audioChunks = [];
         mediaRecorder.start();
+        
+        finalTranscript = "";
+        interimTranscript = "";
+        if (recognition) {
+            try { recognition.start(); } catch(e){}
+        }
+        
         recordBtn.classList.add('recording');
         statusText.textContent = "Listening...";
     }
@@ -56,6 +91,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function stopRecording() {
         if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
         mediaRecorder.stop();
+        
+        if (recognition) {
+            try { recognition.stop(); } catch(e){}
+        }
+        
         recordBtn.classList.remove('recording');
         statusText.textContent = "Processing incident via Amazon Nova...";
     }
@@ -71,13 +111,21 @@ document.addEventListener('DOMContentLoaded', () => {
         // The backend `process_voice_incident` auto-detects based on this string
         formData.append('audio', audioBlob, 'recording.webm');
         
-        // Inject fake hackathon context metadata 
+        // Fix for Javascript Async Race Condition:
+        // Wait 800ms to ensure the browser's SpeechRecognition engine has time 
+        // to fire its final 'onresult' event before we grab the string!
+        await new Promise(r => setTimeout(r, 800));
+        
+        let combinedTranscript = (finalTranscript + interimTranscript).trim();
+        
+        // Inject context metadata AND real transcript
         // (In a real app, this comes from the current Clinic Dashboard view)
         const metadata = {
             session_id: sessionId,
             incident_id: "HACKATHON-DEMO-001",
             device_id: "Unknown Device",
-            reporter: "Web Copilot Frontend"
+            reporter: "Web Copilot Frontend",
+            description: combinedTranscript // Passes to backend via multi-turn slot schema
         };
         formData.append('metadata', JSON.stringify(metadata));
         
@@ -234,11 +282,16 @@ document.addEventListener('DOMContentLoaded', () => {
             staffImpactOut.innerHTML = staffHtml;
         }
         
-        // 6. Play Base64 Audio natively (works for both Clarification and Complete states)
+        // 6. Play Base64 Audio natively OR fallback to browser TTS (Offline Hackathon Mode)
         if (data.spoken_response_base64) {
             const audioSrc = `data:audio/mp3;base64,${data.spoken_response_base64}`;
             player.src = audioSrc;
             player.play().catch(e => console.error("Audio auto-play blocked by browser policy:", e));
+        } else if (data.final_text_response && 'speechSynthesis' in window) {
+            // Cancel any ongoing speech
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(data.final_text_response);
+            window.speechSynthesis.speak(utterance);
         }
     }
 });

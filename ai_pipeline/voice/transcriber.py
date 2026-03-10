@@ -33,12 +33,8 @@ class NovaSonicTranscriber:
         """
         if config.USE_MOCK_MODEL:
             print("[VoiceTranscriber] Using Mock Offline Mode")
-            if metadata and metadata.get("description"):
-                return metadata.get("description")
-            # In offline mock mode, if the pipeline was fed a dummy metadata dict 
-            # with a description (like in demo_voice_scenarios), we assume that was 
-            # the intended transcript. Otherwise fallback to a default string.
-            return "The centrifuge in Lab A is throwing an E-04 error."
+            desc = metadata.get("description", "") if metadata else ""
+            return desc
             
         try:
             # The Converse API supports multimodal input including audio blocks
@@ -46,8 +42,7 @@ class NovaSonicTranscriber:
                 "role": "user",
                 "content": [
                     {
-                        "document": {
-                            "name": "voice_memo",
+                        "audio": {
                             "format": audio_format,
                             "source": {
                                 "bytes": audio_bytes
