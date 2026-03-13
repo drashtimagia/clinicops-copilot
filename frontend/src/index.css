@@ -1,4 +1,5 @@
 :root {
+<<<<<<< HEAD
     /* Premium Color Palette */
     --brand-dark: #0f172a;
     --brand-indigo: #4338ca;
@@ -468,10 +469,56 @@ body {
 .rec-header {
     font-weight: 700;
     margin-bottom: 0.5rem;
+=======
+    --bg-color: #0d1117;
+    --panel-bg: #161b22;
+    --border: #30363d;
+    --text-primary: #c9d1d9;
+    --text-dim: #8b949e;
+    --accent: #58a6ff;
+    --accent-hover: #3182ce;
+    --danger: #f85149;
+    --danger-pulse: rgba(248, 81, 73, 0.4);
+    --success: #2ea043;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    display: flex;
+    justify-content: center;
+    line-height: 1.5;
+}
+
+.app-container {
+    width: 100%;
+    max-width: 900px;
+    padding: 2rem;
+}
+
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2rem;
+}
+
+.logo {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.status-indicator {
+>>>>>>> dfd1748 (Migrate frontend to React/Vite)
     font-size: 0.85rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+<<<<<<< HEAD
 }
 
 /* Operational Status Items */
@@ -511,4 +558,244 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--text-muted);
+=======
+    color: var(--text-dim);
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--border);
+}
+
+.dot.active {
+    background-color: var(--success);
+    box-shadow: 0 0 8px var(--success);
+}
+
+.recording-section {
+    text-align: center;
+    padding: 3rem 0;
+    margin-bottom: 2rem;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.mic-button {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-color: var(--accent);
+    border: none;
+    color: white;
+    cursor: pointer;
+    margin: 2rem auto 1rem auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(88, 166, 255, 0.3);
+}
+
+.mic-button:hover {
+    transform: scale(1.05);
+    background-color: var(--accent-hover);
+}
+
+.mic-button.recording {
+    background-color: var(--danger);
+    box-shadow: 0 0 0 10px var(--danger-pulse);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 var(--danger-pulse); }
+    70% { box-shadow: 0 0 0 20px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.mic-icon {
+    width: 40px;
+    height: 40px;
+}
+
+.status-text {
+    font-weight: 500;
+    color: var(--text-dim);
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.panel h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.placeholder-text {
+    color: var(--text-dim);
+    font-style: italic;
+}
+
+.action-item {
+    background: rgba(88, 166, 255, 0.1);
+    border-left: 3px solid var(--accent);
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    border-radius: 0 4px 4px 0;
+}
+
+.escalate-badge {
+    display: inline-block;
+    background: rgba(248, 81, 73, 0.15);
+    color: var(--danger);
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(248, 81, 73, 0.3);
+}
+
+/* Operational Impact Extension */
+.op-row {
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+}
+
+.op-label {
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-right: 0.5rem;
+}
+
+.op-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-available { background: rgba(46, 160, 67, 0.15); color: var(--success); border: 1px solid rgba(46, 160, 67, 0.3); }
+.badge-warning { background: rgba(210, 153, 34, 0.15); color: #d29922; border: 1px solid rgba(210, 153, 34, 0.3); }
+.badge-danger { background: rgba(248, 81, 73, 0.15); color: var(--danger); border: 1px solid rgba(248, 81, 73, 0.3); }
+
+.role-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.role-item {
+    background: rgba(48, 54, 61, 0.4);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.role-title {
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.role-impact {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+/* Conversational UI */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.chat-bubble {
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    max-width: 85%;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.chat-user {
+    background: rgba(88, 166, 255, 0.15);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    align-self: flex-end;
+    border-bottom-right-radius: 2px;
+}
+
+.chat-assistant {
+    background: rgba(48, 54, 61, 0.5);
+    border: 1px solid var(--border);
+    align-self: flex-start;
+    border-bottom-left-radius: 2px;
+}
+
+.chat-role {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+    opacity: 0.7;
+}
+
+/* Slot Extraction UI */
+.slot-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.slot-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+}
+
+.slot-label {
+    font-weight: 500;
+    color: var(--text-dim);
+}
+
+.slot-value {
+    font-weight: 600;
+}
+
+.slot-missing {
+    color: var(--danger);
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+.slot-filled {
+    color: var(--success);
+>>>>>>> dfd1748 (Migrate frontend to React/Vite)
 }
