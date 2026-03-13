@@ -3,7 +3,8 @@ import os
 from typing import List
 from .models import PastIncident
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# BASE_DIR = project root (4 levels up from backend/ai_pipeline/memory/loader.py)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 INCIDENTS_PATH = os.path.join(BASE_DIR, 'data', 'incidents', 'reports.json')
 
 class IncidentLoader:

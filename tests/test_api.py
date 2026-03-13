@@ -1,3 +1,9 @@
+import os, sys
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_BACKEND_DIR = os.path.join(_PROJECT_ROOT, "backend")
+if _BACKEND_DIR not in sys.path:
+    sys.path.insert(0, _BACKEND_DIR)
+
 from ai_pipeline.api import process_incident
 import json
 

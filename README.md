@@ -9,19 +9,19 @@ We provide two pre-configured zero-dependency demo entries to evaluate the Copil
 ### 1. Batch Text Demo
 Runs the medical pipeline over all 10 mock incident files and tracks escalation correctness.
 ```bash
-cd backend && python evaluate_pipeline.py
+python evaluate_pipeline.py
 ```
 
 ### 2. Live Voice Web UI Demo
 A complete Vanilla HTML/JS Push-to-Talk interface running with Amazon Nova 2 Sonic multimodality.
-1. Start the backend: `cd backend && python server.py`
+1. Start the backend: `python server.py`
 2. Open in browser: `http://localhost:8080`
 3. Click and hold the microphone to synthesize a clinical recommendation.
 
 ### 3. Scripted Voice Backend Scenario Tests
 Runs 3 specific text-grounded HTTP unit tests against the voice API (Normal, Safety Hazard, and Repeated Memory Matches). Note: You must start `server.py` first.
 ```bash
-cd backend && python demo_voice_scenarios.py
+python demo_voice_scenarios.py
 ```
 ## Features
 - Incident troubleshooting from manuals and SOPs

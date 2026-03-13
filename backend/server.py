@@ -1,13 +1,21 @@
 import os
+import sys
 import json
 import base64
 from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+
+# Ensure backend/ is on path when run from project root
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
+FRONTEND_DIR = os.path.join(PROJECT_ROOT, 'frontend', 'dist')
+sys.path.insert(0, BACKEND_DIR)
 
 # Load the core pipeline API
 from ai_pipeline.api import _initialize_services, process_voice_incident
 
-FRONTEND_STATIC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../frontend/static'))
 app = Flask(__name__)
+CORS(app) # Enable CORS for development
 
 # Warm up the services on boot (validates env variables)
 try:
@@ -19,13 +27,18 @@ except Exception as e:
 
 @app.route('/')
 def serve_frontend():
-    """Serve the static Vanilla HTML/JS Voice App."""
-    return send_from_directory(FRONTEND_STATIC_DIR, 'index.html')
+    """Serve the React production build."""
+    return send_from_directory(FRONTEND_DIR, 'index.html')
+
+@app.route('/assets/<path:path>')
+def serve_assets(path):
+    """Serve Vite build assets."""
+    return send_from_directory(os.path.join(FRONTEND_DIR, 'assets'), path)
 
 @app.route('/static/<path:path>')
 def serve_static(path):
-    """Serve JS and CSS assets."""
-    return send_from_directory(FRONTEND_STATIC_DIR, path)
+    """Serve legacy or additional static assets if needed."""
+    return send_from_directory(FRONTEND_DIR, path)
 
 @app.route('/api/v1/voice/incident', methods=['POST'])
 def handle_voice_incident():

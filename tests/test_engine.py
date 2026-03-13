@@ -1,3 +1,9 @@
+import os, sys
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_BACKEND_DIR = os.path.join(_PROJECT_ROOT, "backend")
+if _BACKEND_DIR not in sys.path:
+    sys.path.insert(0, _BACKEND_DIR)
+
 import json
 from ai_pipeline.data_ingestion.models import DocumentChunk
 from ai_pipeline.memory.models import PastIncident, MemoryMatchResult

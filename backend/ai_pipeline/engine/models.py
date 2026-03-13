@@ -1,5 +1,21 @@
-from dataclasses import dataclass
-from typing import List
+from dataclasses import dataclass, field
+from typing import List, Dict, Any, Optional
+
+@dataclass
+class ResolutionStep:
+    """A single expert-quality step in the resolution sequence."""
+    step: int
+    action: str
+    checkpoint: str = ""
+    if_fails: str = ""
+
+    def to_dict(self):
+        return {
+            "step": self.step,
+            "action": self.action,
+            "checkpoint": self.checkpoint,
+            "if_fails": self.if_fails
+        }
 
 @dataclass
 class DecisionOutput:
@@ -12,6 +28,11 @@ class DecisionOutput:
     memory_match: bool
     escalate: bool
     escalation_reason: str
+    # New fields
+    resolution_steps: List[Dict[str, Any]] = field(default_factory=list)
+    technician_required: bool = False
+    book_appointment_reason: Optional[str] = None
+    # Existing optional fields
     downtime_bucket: str = "available"
     reroute_recommendation: str = ""
     staff_notification: str = ""
@@ -20,24 +41,26 @@ class DecisionOutput:
     citations: List[str] = None
 
     def __post_init__(self):
-        # Handle default list/dict instantiation cleanly
         if self.reported_by_role is None:
             self.reported_by_role = {"role": "Unknown", "location": "Unknown"}
         if self.affected_roles is None:
             self.affected_roles = []
         if self.citations is None:
             self.citations = []
-            
+
     def to_dict(self):
         return {
             "incident_id": self.incident_id,
             "device_type": self.device_type,
             "diagnosis": self.diagnosis,
+            "resolution_steps": self.resolution_steps,
             "recommended_actions": self.recommended_actions,
             "confidence": self.confidence,
             "memory_match": self.memory_match,
             "escalate": self.escalate,
             "escalation_reason": self.escalation_reason,
+            "technician_required": self.technician_required,
+            "book_appointment_reason": self.book_appointment_reason,
             "downtime_bucket": self.downtime_bucket,
             "reroute_recommendation": self.reroute_recommendation,
             "staff_notification": self.staff_notification,

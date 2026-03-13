@@ -3,7 +3,7 @@ from typing import Dict, Any
 
 from ai_pipeline.config import config
 from ai_pipeline.data_ingestion.parser import MarkdownParser
-from ai_pipeline.data_ingestion.ingest import process_directory, MANUALS_DIR, SOPS_DIR
+from ai_pipeline.data_ingestion.ingest import process_directory, load_incidents_as_chunks, MANUALS_DIR, SOPS_DIR
 from ai_pipeline.retrieval.service import RetrievalService
 from ai_pipeline.memory.matcher import MemoryMatcher
 from ai_pipeline.engine.generator import get_decision_engine
@@ -32,18 +32,22 @@ def _initialize_services():
         
     print("[AI Pipeline] Initializing core services...")
     
-    # 2. Load and embed knowledge base
+    # 2. Load and embed knowledge base (manuals + SOPs + historical incidents)
     parser = MarkdownParser()
     chunks = []
     chunks.extend(process_directory(MANUALS_DIR, "manual", parser))
     chunks.extend(process_directory(SOPS_DIR, "sop", parser))
+    chunks.extend(load_incidents_as_chunks())
     
     _retrieval_service = RetrievalService(chunks)
     _memory_matcher = MemoryMatcher()
     _decision_engine = get_decision_engine()
     
     if config.ENABLE_VOICE:
-        _voice_service = VoiceService()
+        _voice_service = VoiceService(
+            retrieval_service=_retrieval_service,
+            memory_matcher=_memory_matcher
+        )
     
     print("[AI Pipeline] Services warm and ready.")
 

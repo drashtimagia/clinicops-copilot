@@ -1,8 +1,7 @@
 .env
-.venv/
-venv/
-__pycache__/
+frontend-vanilla-backup
 *.pyc
-.DS_Store
-.idea/
-.vscode/
+frontend/dist
+*.log
+node_modules
+frontend/node_modules

@@ -49,6 +49,25 @@ class VoiceSynthesizer:
                     return stream.read()
             return None
             
+        except self.client.exceptions.ClientError as e:
+            if "neural" in str(e).lower() or "ValidationException" in str(e):
+                # Neural not supported for this voice — fallback to standard
+                try:
+                    response = self.client.synthesize_speech(
+                        Text=text,
+                        OutputFormat='mp3',
+                        VoiceId=config.VOICE_ID,
+                        Engine='standard'
+                    )
+                    if "AudioStream" in response:
+                        with response["AudioStream"] as stream:
+                            return stream.read()
+                except Exception as inner_e:
+                    print(f"[VoiceSynthesizer] Fallback TTS also failed: {inner_e}")
+            else:
+                print(f"Error calling AWS TTS synthesis: {e}")
+            return None
+            
         except Exception as e:
             print(f"Error calling AWS TTS synthesis: {e}")
             return None
