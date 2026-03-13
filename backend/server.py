@@ -6,6 +6,7 @@ from flask import Flask, request, jsonify, send_from_directory
 # Load the core pipeline API
 from ai_pipeline.api import _initialize_services, process_voice_incident
 
+FRONTEND_STATIC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../frontend/static'))
 app = Flask(__name__)
 
 # Warm up the services on boot (validates env variables)
@@ -19,12 +20,12 @@ except Exception as e:
 @app.route('/')
 def serve_frontend():
     """Serve the static Vanilla HTML/JS Voice App."""
-    return send_from_directory('static', 'index.html')
+    return send_from_directory(FRONTEND_STATIC_DIR, 'index.html')
 
 @app.route('/static/<path:path>')
 def serve_static(path):
     """Serve JS and CSS assets."""
-    return send_from_directory('static', path)
+    return send_from_directory(FRONTEND_STATIC_DIR, path)
 
 @app.route('/api/v1/voice/incident', methods=['POST'])
 def handle_voice_incident():
