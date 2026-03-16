@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Mic, CheckCircle2, AlertCircle, Play, Users, Activity, MessageSquare, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { io } from 'socket.io-client';
 
 const App = () => {
     const [isRecording, setIsRecording] = useState(false);
@@ -19,49 +18,8 @@ const App = () => {
     const audioPlayerRef = useRef(null);
     const chatEndRef = useRef(null);
     const mediaRecorderRef = useRef(null);
-    const socketRef = useRef(null);
-    const [displayTranscript, setDisplayTranscript] = useState('');
+    const audioChunksRef = useRef([]);
     const [micStatus, setMicStatus] = useState('initializing'); // initializing, ready, denied, error
-    const startTimeRef = useRef(0);
-
-    const initSocket = () => {
-        if (socketRef.current) return;
-        
-        const socket = io('http://127.0.0.1:8080');
-        
-        socket.on('connect', () => {
-            console.log("Socket connected:", socket.id);
-        });
-        
-        socket.on('transcript_update', (data) => {
-            console.log("Sonic transcript:", data.text);
-            setDisplayTranscript(data.text);
-            setStatus(data.text);
-        });
-        
-        socket.on('voice_finished', () => {
-            console.log("Sonic session finished. Processing final...");
-            // Use the last transcript we had
-            setDisplayTranscript(prev => {
-                socket.emit('process_final_transcript', { text: prev, session_id: sessionId });
-                return prev;
-            });
-            setStatus("Finalizing...");
-        });
-        
-        socket.on('final_response', (response) => {
-            if (response.status === 'success') {
-                setStatus("Ready");
-                renderResults(response.data);
-                setDisplayTranscript('');
-            } else {
-                setStatus("Error processing voice.");
-            }
-            setIsProcessing(false);
-        });
-        
-        socketRef.current = socket;
-    };
 
     const initMic = async (isManual = false) => {
         try {
@@ -77,9 +35,15 @@ const App = () => {
             const recorder = new MediaRecorder(stream, { mimeType });
             
             recorder.ondataavailable = e => {
-                if (e.data.size > 0 && socketRef.current?.connected) {
-                    socketRef.current.emit('audio_chunk', e.data);
+                if (e.data.size > 0) {
+                    audioChunksRef.current.push(e.data);
                 }
+            };
+
+            recorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+                audioChunksRef.current = []; // Clear for next time
+                await handleVoiceSubmit(audioBlob);
             };
             
             mediaRecorderRef.current = recorder;
@@ -99,12 +63,10 @@ const App = () => {
 
     useEffect(() => {
         initMic();
-        initSocket();
         return () => {
             if (mediaRecorderRef.current && mediaRecorderRef.current.stream) {
                 mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
             }
-            if (socketRef.current) socketRef.current.disconnect();
         };
     }, []);
 
@@ -137,6 +99,7 @@ const App = () => {
     };
 
     const startRecording = async () => {
+        console.log("startRecording called, mic status:", micStatus);
         if (!mediaRecorderRef.current) {
             setStatus("Wait, re-initializing...");
             const success = await initMic(true);
@@ -149,14 +112,9 @@ const App = () => {
             audioPlayerRef.current.currentTime = 0;
         }
 
-        setDisplayTranscript('');
-        
-        if (socketRef.current) {
-            socketRef.current.emit('start_voice', { session_id: sessionId });
-        }
-
+        audioChunksRef.current = [];
         try {
-            mediaRecorderRef.current.start(250); // Send chunks every 250ms
+            mediaRecorderRef.current.start();
             setIsRecording(true);
             setStatus("Listening...");
         } catch (e) {
@@ -167,13 +125,9 @@ const App = () => {
 
     const stopRecording = () => {
         if (!isRecording) return;
-
         try {
             if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
                 mediaRecorderRef.current.stop();
-            }
-            if (socketRef.current) {
-                socketRef.current.emit('stop_voice', {});
             }
             setIsRecording(false);
             setIsProcessing(true);
@@ -184,9 +138,31 @@ const App = () => {
         }
     };
 
-    const handleAudioSubmit = async () => {
-        // Obsolete with Socket.IO streaming, but keeping the signature
-        // if needed for legacy fallback
+    const handleVoiceSubmit = async (audioBlob) => {
+        if (!audioBlob || audioBlob.size < 1000) {
+            setIsProcessing(false);
+            setStatus("Ready");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'incident.webm');
+        formData.append('session_id', sessionId);
+
+        try {
+            const response = await axios.post('http://127.0.0.1:8080/api/v1/voice/incident', formData);
+            if (response.data.status === 'success') {
+                setStatus("Ready");
+                renderResults(response.data.data);
+            } else {
+                setStatus("Error processing voice.");
+            }
+        } catch (error) {
+            console.error("Voice Error:", error);
+            setStatus("Error: " + (error.response?.data?.message || error.message));
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const handleTextSubmit = async (e) => {
@@ -251,7 +227,7 @@ const App = () => {
                 </div>
                 <div className="status-chip glass-light">
                     <span className="pulse-dot"></span>
-                    <span id="backendStatus">Backend Connected</span>
+                    <span id="backendStatus">Live Status</span>
                 </div>
             </header>
 
@@ -414,7 +390,6 @@ const formatAssistantMessage = (text) => {
     if (!text) return null;
 
     // Detect if the text contains numbered steps or bullet points
-    // Patterns: "1. ", "2. ", "-", "*", "•"
     const isNumbered = /\d+\.\s/.test(text);
     const isBulleted = /[\-\*•]\s/.test(text);
 
@@ -422,8 +397,6 @@ const formatAssistantMessage = (text) => {
         return <span>{text}</span>;
     }
 
-    // Split by numeric patterns or bullets, but keep the delimiter
-    // This regex splits on "1. ", "2. ", or bullets like "- ", "* ", "• "
     const items = text.split(/(?=\d+\.\s|[\-\*•]\s)/).filter(item => item.trim().length > 0);
 
     return (
