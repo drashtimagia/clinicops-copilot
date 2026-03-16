@@ -1,7 +1,23 @@
+# Environment & Virtual Envs
 .env
-frontend-vanilla-backup
+.venv*
+venvs/
+.python-version
+
+# Dependencies & Libraries
+node_modules/
+frontend/node_modules/
+libraries/
+
+# Build & Cache
+dist/
+frontend/dist/
+.vite/
+__pycache__/
 *.pyc
-frontend/dist
+.DS_Store
+
+# Documentation & Temp
+docs/
+frontend-vanilla-backup/
 *.log
-node_modules
-frontend/node_modules
