@@ -1,37 +1,82 @@
-# ClinicOps Copilot
+# ClinicOps Copilot 🩺
 
-AI-powered clinic---
+ClinicOps Copilot is an AI-powered assistant designed for clinical staff to troubleshoot medical equipment incidents in real-time. It leverages RAG (Retrieval-Augmented Generation) over device manuals and SOPs to provide grounded, safe, and actionable operational advice.
 
-## Hackathon Demos
+## 🚀 Key Features
 
-We provide two pre-configured zero-dependency demo entries to evaluate the Copilot output schema without needing keys:
+- **Multimodal Interaction**: Supports both text chat and real-time voice (Push-to-Talk).
+- **Grounded Intelligence**: Troubleshooting steps are pulled directly from internal knowledge bases (Manuals & SOPs).
+- **Flexible Data Intake**: Intelligently extracts "Reporter", "Location", and "Machine" from natural conversational flows.
+- **Smart Escalation**: Automatically detects safety hazards or unresolved issues and suggests operational rerouting.
+- **Real-time Synchronization**: Live updates to a dashboard "Context Map" as the conversation progresses.
 
-### 1. Batch Text Demo
-Runs the medical pipeline over all 10 mock incident files and tracks escalation correctness.
-```bash
-python evaluate_pipeline.py
+## 🛠️ Technology Stack
+
+- **Frontend**: React (Vite), Framer Motion, Socket.IO Client, Lucide-React.
+- **Backend**: Python 3.12, Flask, Flask-SocketIO (Eventlet), FAISS.
+- **AI Brain**: 
+  - **Reasoning**: Amazon Bedrock (Nova Lite)
+  - **Embeddings**: Amazon Titan G1
+  - **STT**: Amazon Transcribe (via S3 integration)
+  - **TTS**: Amazon Polly (Arthur voice)
+
+## 📂 Project Structure
+
+```text
+clinicops-copilot/
+├── backend/
+│   ├── ai_pipeline/       # Core AI Logic (Agent, Retrieval, Voice)
+│   ├── requirements.txt   # Backend dependencies
+│   └── server.py          # Entry point (Flask + Socket.IO)
+├── frontend/
+│   ├── src/               # React components & styles
+│   ├── dist/              # Production build artifacts
+│   └── vite.config.js     # Frontend build configuration
+├── data/
+│   ├── manuals/           # Device manuals in Markdown
+│   └── sops/              # Standard Operating Procedures
+└── README.md
 ```
 
-### 2. Live Voice Web UI Demo
-A complete Vanilla HTML/JS Push-to-Talk interface running with Amazon Nova 2 Sonic multimodality.
-1. Start the backend: `python server.py`
-2. Open in browser: `http://localhost:8080`
-3. Click and hold the microphone to synthesize a clinical recommendation.
+## ⚙️ Setup & Installation
 
-### 3. Scripted Voice Backend Scenario Tests
-Runs 3 specific text-grounded HTTP unit tests against the voice API (Normal, Safety Hazard, and Repeated Memory Matches). Note: You must start `server.py` first.
+### Prerequisites
+- Python 3.12+
+- Node.js & npm (for frontend development)
+- AWS Credentials with access to Bedrock, Transcribe, Polly, and S3.
+
+### 1. Project Initialization
 ```bash
-python demo_voice_scenarios.py
+# Clone the repository
+git clone https://github.com/drashtimagia/clinicops-copilot.git
+cd clinicops-copilot
+
+# Set up backend environment
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
-## Features
-- Incident troubleshooting from manuals and SOPs
-- RAG-powered grounded responses
-- Memory for repeated incidents
-- Smart escalation for unresolved or unsafe cases
 
-## Tech Stack
-- Amazon Nova
-- Python / FastAPI
-- Vector search / RAG
-- React / Next.js
+### 2. Environment Configuration
+Create a `.env` file in `backend/` with the following:
+```env
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_key_id
+AWS_SECRET_ACCESS_KEY=your_secret_key
+ENABLE_VOICE=true
+```
 
+### 3. Running the Application
+```bash
+# Start the Backend (Port 8080)
+# From project root:
+.venv/bin/python backend/server.py
+
+# Access the UI
+# Open in your browser: http://localhost:8080
+```
+
+## 🧪 Development & Testing
+- **Frontend Build**: `cd frontend && npm run build`
+- **Manual Verification**: Use the Text HUD for rapid iterating over slot-filling and reasoning without consuming audio tokens.
