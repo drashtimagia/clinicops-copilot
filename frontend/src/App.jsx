@@ -150,7 +150,7 @@ const App = () => {
         formData.append('session_id', sessionId);
 
         try {
-            const response = await axios.post('http://127.0.0.1:8080/api/v1/voice/incident', formData);
+            const response = await axios.post('/api/v1/voice/incident', formData);
             if (response.data.status === 'success') {
                 setStatus("Ready");
                 renderResults(response.data.data);
@@ -179,7 +179,7 @@ const App = () => {
         setHistory(tempHistory);
 
         try {
-            const response = await axios.post('http://127.0.0.1:8080/api/v1/text/incident', {
+            const response = await axios.post('/api/v1/text/incident', {
                 session_id: sessionId,
                 message: text
             });
