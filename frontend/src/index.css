@@ -194,6 +194,8 @@ body {
     flex-direction: column;
     gap: 1.5rem;
     min-width: 0;
+    min-height: 0; /* Crucial for inner scrolling */
+    flex: 1;
 }
 
 .hud-container {
@@ -307,21 +309,96 @@ body {
 
 /* Chat Viewport */
 .chat-viewport {
-    flex-grow: 1;
+    flex: 1;
     overflow: hidden;
     position: relative;
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
+    min-height: 0;
 }
 
 .conversation-history {
-    flex-grow: 1;
+    flex: 1;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 1rem;
     padding-right: 0.5rem;
+    scroll-behavior: smooth;
+    min-height: 0;
+}
+
+.assistant-msg-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.assistant-msg-item {
+    line-height: 1.5;
+}
+
+/* Text Input Area */
+.text-input-container {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+}
+
+.text-input-container:focus-within {
+    border-color: var(--brand-blue);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+}
+
+.text-input {
+    flex-grow: 1;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    padding: 0.5rem 0;
+    outline: none;
+}
+
+.text-input::placeholder {
+    color: var(--text-muted);
+}
+
+.send-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--brand-indigo), var(--brand-blue));
+    border: none;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.send-btn:hover:not(:disabled) {
+    transform: scale(1.1);
+    box-shadow: 0 0 12px var(--brand-blue);
+}
+
+.send-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    filter: grayscale(1);
 }
 
 .welcome-message {
