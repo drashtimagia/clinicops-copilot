@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Mic, CheckCircle2, AlertCircle, Play, Users, Activity, MessageSquare, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 
 const App = () => {
     const [isRecording, setIsRecording] = useState(false);
@@ -12,111 +13,210 @@ const App = () => {
     const [opStatus, setOpStatus] = useState(null);
     const [staffImpact, setStaffImpact] = useState([]);
     const [sessionId] = useState(() => "session_" + Math.random().toString(36).substring(2, 10));
+    const [textInput, setTextInput] = useState('');
+    const [isProcessing, setIsProcessing] = useState(false);
 
     const audioPlayerRef = useRef(null);
+    const chatEndRef = useRef(null);
     const mediaRecorderRef = useRef(null);
-    const audioChunksRef = useRef([]);
-
-    // Recognition state
-    const recognitionRef = useRef(null);
-    const transcriptRef = useRef({ final: '', interim: '' }); // use Ref to avoid stale closures in listeners
+    const socketRef = useRef(null);
     const [displayTranscript, setDisplayTranscript] = useState('');
+    const [micStatus, setMicStatus] = useState('initializing'); // initializing, ready, denied, error
+    const startTimeRef = useRef(0);
+
+    const initSocket = () => {
+        if (socketRef.current) return;
+        
+        const socket = io('http://127.0.0.1:8080');
+        
+        socket.on('connect', () => {
+            console.log("Socket connected:", socket.id);
+        });
+        
+        socket.on('transcript_update', (data) => {
+            console.log("Sonic transcript:", data.text);
+            setDisplayTranscript(data.text);
+            setStatus(data.text);
+        });
+        
+        socket.on('voice_finished', () => {
+            console.log("Sonic session finished. Processing final...");
+            // Use the last transcript we had
+            setDisplayTranscript(prev => {
+                socket.emit('process_final_transcript', { text: prev, session_id: sessionId });
+                return prev;
+            });
+            setStatus("Finalizing...");
+        });
+        
+        socket.on('final_response', (response) => {
+            if (response.status === 'success') {
+                setStatus("Ready");
+                renderResults(response.data);
+                setDisplayTranscript('');
+            } else {
+                setStatus("Error processing voice.");
+            }
+            setIsProcessing(false);
+        });
+        
+        socketRef.current = socket;
+    };
+
+    const initMic = async (isManual = false) => {
+        try {
+            console.log("Initializing microphone...");
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            // Standard WebM/Opus path
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm; codecs=opus') 
+                ? 'audio/webm; codecs=opus' 
+                : 'audio/webm';
+            
+            console.log(`Using MIME type: ${mimeType}`);
+            const recorder = new MediaRecorder(stream, { mimeType });
+            
+            recorder.ondataavailable = e => {
+                if (e.data.size > 0 && socketRef.current?.connected) {
+                    socketRef.current.emit('audio_chunk', e.data);
+                }
+            };
+            
+            mediaRecorderRef.current = recorder;
+            setMicStatus('ready');
+            if (isManual) setStatus("Microphone ready!");
+            return true;
+        } catch (err) {
+            console.error("Mic initialization failed:", err);
+            setMicStatus(err.name === 'NotAllowedError' ? 'denied' : 'error');
+            setStatus(err.name === 'NotAllowedError' ? "Permission denied." : "Mic init error.");
+            if (isManual) {
+                alert(`Microphone error: ${err.message}. Please check site permissions in your browser.`);
+            }
+            return false;
+        }
+    };
 
     useEffect(() => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (SpeechRecognition) {
-            const recognition = new SpeechRecognition();
-            recognition.continuous = true;
-            recognition.interimResults = true;
-            recognition.onresult = (event) => {
-                let interim = '';
-                let final = transcriptRef.current.final;
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        final += event.results[i][0].transcript;
-                    } else {
-                        interim += event.results[i][0].transcript;
-                    }
-                }
-                transcriptRef.current = { final, interim };
-                const fullText = (final + interim).trim();
-                setDisplayTranscript(fullText);
-                setStatus(fullText || 'Listening...');
-            };
-            recognitionRef.current = recognition;
-        }
-
-        navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(stream => {
-                const recorder = new MediaRecorder(stream);
-                recorder.ondataavailable = e => {
-                    if (e.data.size > 0) audioChunksRef.current.push(e.data);
-                };
-                recorder.onstop = handleAudioSubmit;
-                mediaRecorderRef.current = recorder;
-            })
-            .catch(err => {
-                console.error("Mic access denied", err);
-                setStatus("Microphone access denied.");
-            });
+        initMic();
+        initSocket();
+        return () => {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.stream) {
+                mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+            }
+            if (socketRef.current) socketRef.current.disconnect();
+        };
     }, []);
 
-    const startRecording = () => {
-        if (!mediaRecorderRef.current) {
-            alert("Microphone not initialized. Check permissions.");
-            return;
+    useEffect(() => {
+        if (chatEndRef.current) {
+            chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-        audioChunksRef.current = [];
-        transcriptRef.current = { final: '', interim: '' };
-        setDisplayTranscript('');
+    }, [history]);
 
-        mediaRecorderRef.current.start();
-        if (recognitionRef.current) {
-            try { recognitionRef.current.start(); } catch (e) { }
+    const playAssistantAudio = (base64) => {
+        if (!base64 || !audioPlayerRef.current) return;
+        
+        try {
+            // Stop any current playback
+            audioPlayerRef.current.pause();
+            audioPlayerRef.current.currentTime = 0;
+            
+            audioPlayerRef.current.src = `data:audio/mp3;base64,${base64}`;
+            audioPlayerRef.current.volume = 1.0;
+            
+            const playPromise = audioPlayerRef.current.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.warn("Autoplay was prevented or audio failed:", error);
+                });
+            }
+        } catch (err) {
+            console.error("Audio playback error:", err);
         }
-        setIsRecording(true);
-        setStatus("Listening...");
+    };
+
+    const startRecording = async () => {
+        if (!mediaRecorderRef.current) {
+            setStatus("Wait, re-initializing...");
+            const success = await initMic(true);
+            if (!success) return;
+        }
+
+        // Immediately stop any currently playing assistant audio
+        if (audioPlayerRef.current) {
+            audioPlayerRef.current.pause();
+            audioPlayerRef.current.currentTime = 0;
+        }
+
+        setDisplayTranscript('');
+        
+        if (socketRef.current) {
+            socketRef.current.emit('start_voice', { session_id: sessionId });
+        }
+
+        try {
+            mediaRecorderRef.current.start(250); // Send chunks every 250ms
+            setIsRecording(true);
+            setStatus("Listening...");
+        } catch (e) {
+            console.error("Failed to start recording:", e);
+            setStatus("Failed to start recording.");
+        }
     };
 
     const stopRecording = () => {
-        if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') return;
-        mediaRecorderRef.current.stop();
-        if (recognitionRef.current) {
-            try { recognitionRef.current.stop(); } catch (e) { }
+        if (!isRecording) return;
+
+        try {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                mediaRecorderRef.current.stop();
+            }
+            if (socketRef.current) {
+                socketRef.current.emit('stop_voice', {});
+            }
+            setIsRecording(false);
+            setIsProcessing(true);
+            setStatus("Analyzing...");
+        } catch (e) {
+            console.error("Failed to stop recording:", e);
+            setIsRecording(false);
         }
-        setIsRecording(false);
-        setStatus("Analyzing Audio...");
     };
 
     const handleAudioSubmit = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const formData = new FormData();
-        formData.append('audio', audioBlob, 'recording.webm');
+        // Obsolete with Socket.IO streaming, but keeping the signature
+        // if needed for legacy fallback
+    };
 
-        // Use the final value from the ref to ensure it's not stale
-        const combinedTranscript = (transcriptRef.current.final + transcriptRef.current.interim).trim();
+    const handleTextSubmit = async (e) => {
+        if (e) e.preventDefault();
+        const text = textInput.trim();
+        if (!text || isProcessing) return;
 
-        const metadata = {
-            session_id: sessionId,
-            incident_id: "VOICE-SESSION-REACT",
-            device_id: "Contextual Device",
-            reporter: "Clinical Staff",
-            description: combinedTranscript
-        };
-        formData.append('metadata', JSON.stringify(metadata));
+        setTextInput('');
+        setIsProcessing(true);
+        setStatus("Thinking...");
+
+        // Proactive UI update: add user message immediately
+        const tempHistory = [...history, { role: 'user', text }];
+        setHistory(tempHistory);
 
         try {
-            setStatus("Processing Incident...");
-            const response = await axios.post('/api/v1/voice/incident', formData);
-            const result = response.data;
+            const response = await axios.post('http://127.0.0.1:8080/api/v1/text/incident', {
+                session_id: sessionId,
+                message: text
+            });
 
-            if (result.status === 'success') {
+            if (response.data.status === 'success') {
                 setStatus("Ready");
-                renderResults(result.data);
+                renderResults(response.data.data);
             }
         } catch (error) {
-            console.error(error);
+            console.error("Text Error:", error);
             setStatus("Error: " + (error.response?.data?.message || error.message));
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -124,18 +224,19 @@ const App = () => {
         if (data.history) setHistory(data.history);
         if (data.extracted_slots) setSlots(data.extracted_slots);
 
-        if (data.status === "complete") {
+        if (data.status === "complete" || data.status === "troubleshooting") {
             const payload = data.pipeline_handoff_payload;
-            setDecision(payload);
-            setOpStatus(payload);
-            setStaffImpact(payload.affected_roles || []);
+            if (payload) {
+                setDecision(payload);
+                setOpStatus(payload);
+                setStaffImpact(payload.affected_roles || []);
+            }
         } else {
-            setDecision(null); // Clear panels if clarifying
+            setDecision(null);
         }
 
         if (data.spoken_response_base64) {
-            audioPlayerRef.current.src = `data:audio/mp3;base64,${data.spoken_response_base64}`;
-            audioPlayerRef.current.play().catch(e => console.error("Audio error", e));
+            playAssistantAudio(data.spoken_response_base64);
         }
     };
 
@@ -188,14 +289,17 @@ const App = () => {
                                 onMouseDown={startRecording}
                                 onMouseUp={stopRecording}
                                 onMouseLeave={() => isRecording && stopRecording()}
-                                className={`voice-orb-btn ${isRecording ? 'recording' : ''}`}
+                                className={`voice-orb-btn ${isRecording ? 'recording' : ''} ${micStatus !== 'ready' ? 'disabled' : ''}`}
+                                title={micStatus !== 'ready' ? "Microphone not ready" : "Push to Talk"}
                             >
                                 <div className="orb-inner">
-                                    <Mic size={48} strokeWidth={2.5} />
+                                    {micStatus === 'denied' ? <AlertCircle size={48} /> : <Mic size={48} strokeWidth={2.5} />}
                                 </div>
                                 {isRecording && <div className="orb-pulsar"></div>}
                             </motion.button>
-                            <div className="hud-status">{status}</div>
+                            <div className="hud-status">
+                                {micStatus === 'denied' ? "Mic Access Denied" : status}
+                            </div>
                             {isRecording && (
                                 <div className="wave-visualizer">
                                     {[1, 2, 3, 4, 5].map(i => <div key={i} className="bar"></div>)}
@@ -206,9 +310,10 @@ const App = () => {
 
                     <div className="chat-viewport glass">
                         <div className="conversation-history">
-                            <AnimatePresence>
+                            <AnimatePresence initial={false}>
                                 {history.length === 0 ? (
                                     <motion.div
+                                        key="welcome"
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         className="welcome-message"
@@ -225,13 +330,34 @@ const App = () => {
                                             className={`chat-bubble ${msg.role === 'user' ? 'chat-user' : 'chat-assistant'}`}
                                         >
                                             <div className="chat-role">{msg.role === 'user' ? 'You' : 'AI Copilot'}</div>
-                                            <div className="chat-text">{msg.text}</div>
+                                            <div className="chat-text">
+                                                {msg.role === 'assistant' ? formatAssistantMessage(msg.text) : msg.text}
+                                            </div>
                                         </motion.div>
                                     ))
                                 )}
                             </AnimatePresence>
+                            <div ref={chatEndRef} />
                         </div>
                     </div>
+
+                    <form className="text-input-container glass-light" onSubmit={handleTextSubmit}>
+                        <input 
+                            type="text"
+                            placeholder="Type your message here..."
+                            value={textInput}
+                            onChange={(e) => setTextInput(e.target.value)}
+                            disabled={isProcessing}
+                            className="text-input"
+                        />
+                        <button 
+                            type="submit" 
+                            disabled={isProcessing || !textInput.trim()}
+                            className="send-btn"
+                        >
+                            <ArrowRight size={20} />
+                        </button>
+                    </form>
                 </div>
 
                 {/* Right Sidebar: Recommendations */}
@@ -280,6 +406,32 @@ const App = () => {
 
             <audio ref={audioPlayerRef} hidden />
         </div>
+    );
+};
+
+// Helper: Formats assistant messages to handle numbered/bulleted lists
+const formatAssistantMessage = (text) => {
+    if (!text) return null;
+
+    // Detect if the text contains numbered steps or bullet points
+    // Patterns: "1. ", "2. ", "-", "*", "•"
+    const isNumbered = /\d+\.\s/.test(text);
+    const isBulleted = /[\-\*•]\s/.test(text);
+
+    if (!isNumbered && !isBulleted) {
+        return <span>{text}</span>;
+    }
+
+    // Split by numeric patterns or bullets, but keep the delimiter
+    // This regex splits on "1. ", "2. ", or bullets like "- ", "* ", "• "
+    const items = text.split(/(?=\d+\.\s|[\-\*•]\s)/).filter(item => item.trim().length > 0);
+
+    return (
+        <ul className="assistant-msg-list">
+            {items.map((item, i) => (
+                <li key={i} className="assistant-msg-item">{item.trim()}</li>
+            ))}
+        </ul>
     );
 };
 
