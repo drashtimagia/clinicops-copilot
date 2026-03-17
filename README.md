@@ -80,3 +80,5 @@ ENABLE_VOICE=true
 ## 🧪 Development & Testing
 - **Frontend Build**: `cd frontend && npm run build`
 - **Manual Verification**: Use the Text HUD for rapid iterating over slot-filling and reasoning without consuming audio tokens.
+
+[Working Project Link](https://clinicops-copilot.vercel.app/)
